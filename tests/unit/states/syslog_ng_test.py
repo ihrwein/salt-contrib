@@ -14,8 +14,10 @@ from salttesting.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 ensure_in_syspath('../../')
 
 from salt.states import syslog_ng
+from salt.modules import syslog_ng as syslog_ng_module
 
 syslog_ng.__salt__ = {}
+syslog_ng_module.__salt__ = {}
 
 SOURCE_1_CONFIG = {
         "id": "s_tail",
@@ -228,6 +230,15 @@ options {
 """
 )
 
+_SALT_VAR_WITH_MODULE_METHODS = {
+    'syslog_ng.config': syslog_ng_module.config,
+    'syslog_ng.start': syslog_ng_module.start,
+    'syslog_ng.reload': syslog_ng_module.reload,
+    'syslog_ng.stop': syslog_ng_module.stop,
+    'syslog_ng.write_version': syslog_ng_module.write_version,
+    'syslog_ng.write_config': syslog_ng_module.write_config
+}
+
 
 def remove_whitespaces(source):
     return re.sub(r"\s+", "", source.strip())
@@ -261,48 +272,53 @@ class SyslogNGTestCase(TestCase):
     def _config_generator_template(self, yaml_input, expected):
         parsed_yaml_config = yaml.load(yaml_input["config"])
         id = yaml_input["id"]
-        got = syslog_ng.config(id, config=parsed_yaml_config, write=False)
-        config = got["changes"]["new"]
-        self.assertEqual(remove_whitespaces(expected), remove_whitespaces(config))
-        self.assertEqual(False, got["result"])
-        print("#######################")
-        print(yaml_input["config"])
-        print("-------")
-        print(got)
+
+        with patch.dict(syslog_ng.__salt__, _SALT_VAR_WITH_MODULE_METHODS):
+            got = syslog_ng.config(id, config=parsed_yaml_config, write=False)
+            config = got["changes"]["new"]
+            self.assertEqual(remove_whitespaces(expected), remove_whitespaces(config))
+            self.assertEqual(False, got["result"])
+            print("#######################")
+            print(yaml_input["config"])
+            print("-------")
+            print(got)
 
     def test_write_config(self):
         yaml_inputs = (SOURCE_2_CONFIG, SOURCE_1_CONFIG, FILTER_1_CONFIG, TEMPLATE_1_CONFIG, REWRITE_1_CONFIG, LOG_1_CONFIG)
         expected_outputs = (SOURCE_2_EXPECTED, SOURCE_1_EXPECTED, FILTER_1_EXPECTED, TEMPLATE_1_EXPECTED, REWRITE_1_EXPECTED, LOG_1_EXPECTED)
         config_file_fd, config_file_name = tempfile.mkstemp()
         os.close(config_file_fd)
-        syslog_ng.set_config_file(config_file_name)
-        syslog_ng.write_version("3.6")
-        syslog_ng.write_config("", config='@include "scl.conf"')
 
-        for i in yaml_inputs:
-            parsed_yaml_config = yaml.load(i["config"])
-            id = i["id"]
-            got = syslog_ng.config(id, config=parsed_yaml_config, write=True)
+        with patch.dict(syslog_ng.__salt__, _SALT_VAR_WITH_MODULE_METHODS):
+            syslog_ng_module.set_config_file(config_file_name)
+            syslog_ng.write_version("3.6")
+            syslog_ng.write_config("", config='@include "scl.conf"')
 
-        written_config = ""
-        with open(config_file_name, "r") as f:
-            written_config = f.read()
+            for i in yaml_inputs:
+                parsed_yaml_config = yaml.load(i["config"])
+                id = i["id"]
+                got = syslog_ng.config(id, config=parsed_yaml_config, write=True)
 
-        for i in expected_outputs:
-            self.assertIn(i, written_config)
+            written_config = ""
+            with open(config_file_name, "r") as f:
+                written_config = f.read()
 
-        self.assertIn(SOURCE_1_EXPECTED, written_config)
+            for i in expected_outputs:
+                self.assertIn(i, written_config)
 
-        syslog_ng.set_config_file("")
-        os.remove(config_file_name)
+            self.assertIn(SOURCE_1_EXPECTED, written_config)
+
+            syslog_ng_module.set_config_file("")
+            os.remove(config_file_name)
 
     def test_started_state_generate_valid_cli_command(self):
         mock_func = MagicMock(return_value={"retcode": 0, "stdout": "", "pid": 1000})
 
-        with patch.dict(syslog_ng.__salt__, {'cmd.run_all': mock_func}):
-            got = syslog_ng.started(user="joe", group="users", enable_core=True)
-            command = got["changes"]["new"]
-            self.assertTrue(command.endswith("syslog-ng --user=joe --group=users --enable-core --cfgfile=/etc/syslog-ng.conf"))
+        with patch.dict(syslog_ng.__salt__, _SALT_VAR_WITH_MODULE_METHODS):
+            with patch.dict(syslog_ng_module.__salt__, {'cmd.run_all': mock_func}):
+                got = syslog_ng.started(user="joe", group="users", enable_core=True)
+                command = got["changes"]["new"]
+                self.assertTrue(command.endswith("syslog-ng --user=joe --group=users --enable-core --cfgfile=/etc/syslog-ng.conf"))
 
 
 if __name__ == '__main__':

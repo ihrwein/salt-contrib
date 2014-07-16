@@ -10,10 +10,11 @@ from salttesting.helpers import ensure_in_syspath
 from salttesting.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 ensure_in_syspath('../../')
 
-from salt.modules import syslog_ng
+from salt.modules import syslog_ng as syslog_ng_module
+from salt.states import syslog_ng as syslog_ng_state
 
-syslog_ng.__salt__ = {}
-syslog_ng.__opts__ = {}
+syslog_ng_module.__salt__ = {}
+syslog_ng_module.__opts__ = {}
 
 _VERSION = "3.6.0alpha0"
 _MODULES = ("syslogformat,json-plugin,basicfuncs,afstomp,afsocket,cryptofuncs,"
@@ -58,7 +59,7 @@ class SyslogNGTestCase(TestCase):
         mock_args = "syslog-ng -V"
         self._assert_template(mock_args,
                               mock_return_value,
-                              function_to_call=syslog_ng.version,
+                              function_to_call=syslog_ng_module.version,
                               expected_output=expected_output)
 
     def test_stats(self):
@@ -67,7 +68,7 @@ class SyslogNGTestCase(TestCase):
         mock_args = "syslog-ng-ctl stats"
         self._assert_template(mock_args,
                               mock_return_value,
-                              function_to_call=syslog_ng.stats,
+                              function_to_call=syslog_ng_module.stats,
                               expected_output=expected_output)
 
     def test_modules(self):
@@ -76,7 +77,7 @@ class SyslogNGTestCase(TestCase):
         mock_args = "syslog-ng -V"
         self._assert_template(mock_args,
                               mock_return_value,
-                              function_to_call=syslog_ng.modules,
+                              function_to_call=syslog_ng_module.modules,
                               expected_output=expected_output)
 
     def test_config_test_ok(self):
@@ -84,7 +85,7 @@ class SyslogNGTestCase(TestCase):
         mock_args = "syslog-ng --syntax-only"
         self._assert_template(mock_args,
                               mock_return_value,
-                              function_to_call=syslog_ng.config_test,
+                              function_to_call=syslog_ng_module.config_test,
                               expected_output=mock_return_value)
 
     def test_config_test_fails(self):
@@ -92,7 +93,7 @@ class SyslogNGTestCase(TestCase):
         mock_args = "syslog-ng --syntax-only"
         self._assert_template(mock_args,
                               mock_return_value,
-                              function_to_call=syslog_ng.config_test,
+                              function_to_call=syslog_ng_module.config_test,
                               expected_output=mock_return_value)
 
     def test_config_test_cfgfile(self):
@@ -101,7 +102,7 @@ class SyslogNGTestCase(TestCase):
         mock_args = "syslog-ng --syntax-only --cfgfile={0}".format(cfgfile)
         self._assert_template(mock_args,
                               mock_return_value,
-                              function_to_call=syslog_ng.config_test,
+                              function_to_call=syslog_ng_module.config_test,
                               function_args={"cfgfile": cfgfile},
                               expected_output=mock_return_value)
 
@@ -124,7 +125,7 @@ class SyslogNGTestCase(TestCase):
 
         mock_function = MagicMock(return_value=mock_return_value)
 
-        with patch.dict(syslog_ng.__salt__, {'cmd.run_all': mock_function}):
+        with patch.dict(syslog_ng_module.__salt__, {'cmd.run_all': mock_function}):
             got = function_to_call(**function_args)
             self.assertEqual(expected_output, got)
 
