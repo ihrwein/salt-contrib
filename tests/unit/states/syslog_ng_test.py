@@ -11,6 +11,7 @@ import os
 from salttesting import skipIf, TestCase
 from salttesting.helpers import ensure_in_syspath
 from salttesting.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
+
 ensure_in_syspath('../../')
 
 from salt.states import syslog_ng
@@ -20,214 +21,216 @@ syslog_ng.__salt__ = {}
 syslog_ng_module.__salt__ = {}
 
 SOURCE_1_CONFIG = {
-        "id": "s_tail",
-        "config":
-"""
-source:
-    - file:
-      - "/var/log/apache/access.log"
-      - follow_freq : 1
-      - flags:
-        - no-parse
-        - validate-utf8
-"""}
+    "id": "s_tail",
+    "config": (
+        """
+        source:
+            - file:
+              - "/var/log/apache/access.log"
+              - follow_freq : 1
+              - flags:
+                - no-parse
+                - validate-utf8
+        """)
+}
 
 SOURCE_1_EXPECTED = (
-"""
-source s_tail {
-   file(
-         "/var/log/apache/access.log",
-         follow_freq(1),
-         flags(no-parse, validate-utf8)
-   );
-};
-"""
+    """
+    source s_tail {
+       file(
+             "/var/log/apache/access.log",
+             follow_freq(1),
+             flags(no-parse, validate-utf8)
+       );
+    };
+    """
 )
 
 SOURCE_2_CONFIG = {
     "id": "s_gsoc2014",
     "config": (
-"""
-source:
-  - tcp:
-    - ip: 0.0.0.0
-    - port: 1234
-    - flags: no-parse
-"""
+        """
+        source:
+          - tcp:
+            - ip: 0.0.0.0
+            - port: 1234
+            - flags: no-parse
+        """
     )
 }
 
 SOURCE_2_EXPECTED = (
-"""
-source s_gsoc2014 {
-   tcp(
-         ip("0.0.0.0"),
-         port(1234),
-         flags(no-parse)
-   );
-};
-"""
+    """
+    source s_gsoc2014 {
+       tcp(
+             ip("0.0.0.0"),
+             port(1234),
+             flags(no-parse)
+       );
+    };
+    """
 )
 
 FILTER_1_CONFIG = {
     "id": "f_json",
     "config": (
-"""
-filter:
-  - match:
-    - "@json:"
-"""
+        """
+        filter:
+          - match:
+            - "@json:"
+        """
     )
 }
 
 FILTER_1_EXPECTED = (
-"""
-filter f_json {
-   match(
-         "@json:"
-   );
-};
-"""
+    """
+    filter f_json {
+       match(
+             "@json:"
+       );
+    };
+    """
 )
 
 TEMPLATE_1_CONFIG = {
     "id": "t_demo_filetemplate",
     "config": (
-"""
-template:
-  - template:
-    - "$ISODATE $HOST $MSG\n"
-  - template_escape:
-    - "no"
-"""
+        """
+        template:
+          - template:
+            - "$ISODATE $HOST $MSG\n"
+          - template_escape:
+            - "no"
+        """
     )
 }
 
 TEMPLATE_1_EXPECTED = (
-"""
-template t_demo_filetemplate {
-   template(
-         "$ISODATE $HOST $MSG "
-   );
-   template_escape(
-         no
-   );
-};
-"""
+    """
+    template t_demo_filetemplate {
+       template(
+             "$ISODATE $HOST $MSG "
+       );
+       template_escape(
+             no
+       );
+    };
+    """
 )
 
 REWRITE_1_CONFIG = {
     "id": "r_set_message_to_MESSAGE",
     "config": (
-"""
-rewrite:
-  - set:
-    - "${.json.message}"
-    - value : "$MESSAGE"
-"""
+        """
+        rewrite:
+          - set:
+            - "${.json.message}"
+            - value : "$MESSAGE"
+        """
     )
 }
 
 REWRITE_1_EXPECTED = (
-"""
-rewrite r_set_message_to_MESSAGE {
-   set(
-         "${.json.message}",
-         value("$MESSAGE")
-   );
-};
-"""
+    """
+    rewrite r_set_message_to_MESSAGE {
+       set(
+             "${.json.message}",
+             value("$MESSAGE")
+       );
+    };
+    """
 )
 
 LOG_1_CONFIG = {
     "id": "l_gsoc2014",
-    "config":
-"""
-log:
-  - source: s_gsoc2014
-  - junction:
-    - channel:
-      - filter: f_json
-      - parser: p_json
-      - rewrite: r_set_json_tag
-      - rewrite: r_set_message_to_MESSAGE
-      - destination:
-        - file:
-          - "/tmp/json-input.log"
-          - template: t_gsoc2014
-      - flags: final
-    - channel:
-      - filter: f_not_json
-      - parser:
-        - syslog-parser: []
-      - rewrite: r_set_syslog_tag
-      - flags: final
-  - destination:
-    - file:
-      - "/tmp/all.log"
-      - template: t_gsoc2014
-"""
+    "config": (
+        """
+        log:
+          - source: s_gsoc2014
+          - junction:
+            - channel:
+              - filter: f_json
+              - parser: p_json
+              - rewrite: r_set_json_tag
+              - rewrite: r_set_message_to_MESSAGE
+              - destination:
+                - file:
+                  - "/tmp/json-input.log"
+                  - template: t_gsoc2014
+              - flags: final
+            - channel:
+              - filter: f_not_json
+              - parser:
+                - syslog-parser: []
+              - rewrite: r_set_syslog_tag
+              - flags: final
+          - destination:
+            - file:
+              - "/tmp/all.log"
+              - template: t_gsoc2014
+        """
+    )
 }
 
 LOG_1_EXPECTED = (
-"""
-log {
-   source(s_gsoc2014);
-   junction {
-      channel {
-         filter(f_json);
-         parser(p_json);
-         rewrite(r_set_json_tag);
-         rewrite(r_set_message_to_MESSAGE);
-         destination {
-            file(
-                  "/tmp/json-input.log",
-                  template(t_gsoc2014)
-            );
-         };
-         flags(final);
-      };
-      channel {
-         filter(f_not_json);
-         parser {
-            syslog-parser(
+    """
+    log {
+       source(s_gsoc2014);
+       junction {
+          channel {
+             filter(f_json);
+             parser(p_json);
+             rewrite(r_set_json_tag);
+             rewrite(r_set_message_to_MESSAGE);
+             destination {
+                file(
+                      "/tmp/json-input.log",
+                      template(t_gsoc2014)
+                );
+             };
+             flags(final);
+          };
+          channel {
+             filter(f_not_json);
+             parser {
+                syslog-parser(
 
-            );
-         };
-         rewrite(r_set_syslog_tag);
-         flags(final);
-      };
-   };
-   destination {
-      file(
-            "/tmp/all.log",
-            template(t_gsoc2014)
-      );
-   };
-};
-"""
+                );
+             };
+             rewrite(r_set_syslog_tag);
+             flags(final);
+          };
+       };
+       destination {
+          file(
+                "/tmp/all.log",
+                template(t_gsoc2014)
+          );
+       };
+    };
+    """
 )
 
 OPTIONS_1_CONFIG = {
     "id": "global_options",
     "config": (
-"""
-options:
-  - time_reap: 30
-  - mark_freq: 10
-  - keep_hostname: "yes"
-"""
+        """
+        options:
+          - time_reap: 30
+          - mark_freq: 10
+          - keep_hostname: "yes"
+        """
     )
 }
 
 OPTIONS_1_EXPECTED = (
-"""
-options {
-    time_reap(30);
-    mark_freq(10);
-    keep_hostname(yes);
-};
-"""
+    """
+    options {
+        time_reap(30);
+        mark_freq(10);
+        keep_hostname(yes);
+    };
+    """
 )
 
 _SALT_VAR_WITH_MODULE_METHODS = {
@@ -245,9 +248,8 @@ def remove_whitespaces(source):
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-#@skipIf(syslog_ng.__virtual__() is False, 'Syslog-ng must be installed')
+# @skipIf(syslog_ng.__virtual__() is False, 'Syslog-ng must be installed')
 class SyslogNGTestCase(TestCase):
-
     def test_generate_source_config(self):
         self._config_generator_template(SOURCE_1_CONFIG, SOURCE_1_EXPECTED)
 
@@ -284,8 +286,13 @@ class SyslogNGTestCase(TestCase):
             print(got)
 
     def test_write_config(self):
-        yaml_inputs = (SOURCE_2_CONFIG, SOURCE_1_CONFIG, FILTER_1_CONFIG, TEMPLATE_1_CONFIG, REWRITE_1_CONFIG, LOG_1_CONFIG)
-        expected_outputs = (SOURCE_2_EXPECTED, SOURCE_1_EXPECTED, FILTER_1_EXPECTED, TEMPLATE_1_EXPECTED, REWRITE_1_EXPECTED, LOG_1_EXPECTED)
+        yaml_inputs = (
+            SOURCE_2_CONFIG, SOURCE_1_CONFIG, FILTER_1_CONFIG, TEMPLATE_1_CONFIG, REWRITE_1_CONFIG, LOG_1_CONFIG
+        )
+        expected_outputs = (
+            SOURCE_2_EXPECTED, SOURCE_1_EXPECTED, FILTER_1_EXPECTED, TEMPLATE_1_EXPECTED, REWRITE_1_EXPECTED,
+            LOG_1_EXPECTED
+        )
         config_file_fd, config_file_name = tempfile.mkstemp()
         os.close(config_file_fd)
 
@@ -318,9 +325,11 @@ class SyslogNGTestCase(TestCase):
             with patch.dict(syslog_ng_module.__salt__, {'cmd.run_all': mock_func}):
                 got = syslog_ng.started(user="joe", group="users", enable_core=True)
                 command = got["changes"]["new"]
-                self.assertTrue(command.endswith("syslog-ng --user=joe --group=users --enable-core --cfgfile=/etc/syslog-ng.conf"))
+                self.assertTrue(
+                    command.endswith("syslog-ng --user=joe --group=users --enable-core --cfgfile=/etc/syslog-ng.conf"))
 
 
 if __name__ == '__main__':
     from integration import run_tests
+
     run_tests(SyslogNGTestCase, needs_daemon=False)

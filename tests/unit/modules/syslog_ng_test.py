@@ -8,10 +8,10 @@ import salt
 from salttesting import skipIf, TestCase
 from salttesting.helpers import ensure_in_syspath
 from salttesting.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
+
 ensure_in_syspath('../../')
 
 from salt.modules import syslog_ng as syslog_ng_module
-from salt.states import syslog_ng as syslog_ng_state
 
 syslog_ng_module.__salt__ = {}
 syslog_ng_module.__opts__ = {}
@@ -45,10 +45,14 @@ global;payload_reallocs;;a;processed;0
 global;sdata_updates;;a;processed;0
 global;msg_clones;;a;processed;0"""
 
-_SYSLOG_NG_NOT_INSTALLED_RETURN_VALUE = {"retcode": -1, "stderr":
-    "Unable to execute the command 'syslog-ng'. It is not in the PATH."}
-_SYSLOG_NG_CTL_NOT_INSTALLED_RETURN_VALUE = {"retcode": -1, "stderr":
-    "Unable to execute the command 'syslog-ng-ctl'. It is not in the PATH."}
+_SYSLOG_NG_NOT_INSTALLED_RETURN_VALUE = {
+    "retcode": -1, "stderr":
+    "Unable to execute the command 'syslog-ng'. It is not in the PATH."
+}
+_SYSLOG_NG_CTL_NOT_INSTALLED_RETURN_VALUE = {
+    "retcode": -1, "stderr":
+    "Unable to execute the command 'syslog-ng-ctl'. It is not in the PATH."
+}
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
