@@ -243,7 +243,7 @@ def _build_simple_parameter(this, indent):
         return indent + this
     except ValueError:
         if isinstance(this, str) and _string_needs_quotation(this):
-            return '{0}{1!r}'.format(indent, this)
+            return '{0}"{1!s}"'.format(indent, this)
         else:
             return '{0}{1}'.format(indent, this)
 
@@ -287,7 +287,7 @@ def _build_string_parameter(this):
     Builds the config of a simple string parameter.
     '''
     if _string_needs_quotation(this):
-        return '{0!r}'.format(this)
+        return '"{0}"'.format(this)
     else:
         return this
 
