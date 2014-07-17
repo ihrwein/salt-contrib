@@ -35,15 +35,15 @@ SOURCE_1_CONFIG = {
 }
 
 SOURCE_1_EXPECTED = (
-    """
-    source s_tail {
-       file(
-             "/var/log/apache/access.log",
-             follow_freq(1),
-             flags(no-parse, validate-utf8)
-       );
-    };
-    """
+"""
+source s_tail {
+   file(
+         "/var/log/apache/access.log",
+         follow_freq(1),
+         flags(no-parse, validate-utf8)
+   );
+};
+"""
 )
 
 SOURCE_2_CONFIG = {
@@ -60,15 +60,14 @@ SOURCE_2_CONFIG = {
 }
 
 SOURCE_2_EXPECTED = (
-    """
-    source s_gsoc2014 {
-       tcp(
-             ip("0.0.0.0"),
-             port(1234),
-             flags(no-parse)
-       );
-    };
-    """
+"""
+source s_gsoc2014 {
+   tcp(
+         ip("0.0.0.0"),
+         port(1234),
+         flags(no-parse)
+   );
+};"""
 )
 
 FILTER_1_CONFIG = {
@@ -310,10 +309,10 @@ class SyslogNGTestCase(TestCase):
             with open(config_file_name, "r") as f:
                 written_config = f.read()
 
+            config_without_whitespaces = remove_whitespaces(written_config)
             for i in expected_outputs:
-                self.assertIn(i, written_config)
-
-            self.assertIn(SOURCE_1_EXPECTED, written_config)
+                without_whitespaces = remove_whitespaces(i)
+                self.assertIn(without_whitespaces, config_without_whitespaces)
 
             syslog_ng_module.set_config_file("")
             os.remove(config_file_name)

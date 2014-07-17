@@ -14,7 +14,7 @@ in the case of most functions, which contains the syslog-ng and syslog-ng-ctl
 binaries.
 '''
 
-from __future__ import generators, print_function, with_statement
+from __future__ import generators, with_statement
 from time import strftime
 
 import logging
@@ -174,17 +174,17 @@ def _build_statement(id, parent, this, indent, buffer, state_stack):
     :param state_stack: a list, which represents the position in the configuration tree
     '''
     if _is_statement_unnamed(parent) or len(state_stack) > 1:
-        print('{0}{1}'.format(indent, parent) + ' {', file=buffer)
+        buffer.write('{0}{1}'.format(indent, parent) + ' {\n')
     else:
-        print('{0}{1} {2}'.format(indent, parent, id) + ' {', file=buffer)
+        buffer.write('{0}{1} {2}'.format(indent, parent, id) + ' {\n')
     for i in this:
         if isinstance(i, dict):
             key = i.keys()[0]
             value = i[key]
             state_stack.append(0)
-            print(_build_config(id, key, value, state_stack=state_stack), file=buffer)
+            buffer.write(_build_config(id, key, value, state_stack=state_stack))
             state_stack.pop()
-    print('{0}'.format(indent) + '};', file=buffer, end='')
+    buffer.write('{0}'.format(indent) + '};')
 
 
 def _build_complex_parameter(id, this, indent, state_stack):
@@ -221,7 +221,7 @@ def _build_parameters(id, parent, this, buffer, state_stack):
     '''
     state_stack.append(2)
     params = [_build_config(id, parent, i, state_stack=state_stack) for i in this]
-    print(',\n'.join(params), file=buffer)
+    buffer.write(',\n'.join(params))
     state_stack.pop()
 
 
@@ -230,9 +230,9 @@ def _build_options(id, parent, this, indent, buffer, state_stack):
     Builds the options' configuration inside of a statement.
     '''
     state_stack.append(1)
-    print('{0}{1}('.format(indent, parent), file=buffer)
-    print(_build_config(id, parent, this, state_stack=state_stack), file=buffer, end='')
-    print(indent + ');', file=buffer, end='')
+    buffer.write('{0}{1}(\n'.format(indent, parent))
+    buffer.write(_build_config(id, parent, this, state_stack=state_stack) + '\n')
+    buffer.write(indent + ');\n')
     state_stack.pop()
 
 
@@ -282,7 +282,7 @@ def _build_config(salt_id, parent, this, state_stack):
     if _is_statement(parent, this):
         _build_statement(salt_id, parent, this, indent, buf, state_stack)
     elif _is_reference(parent, this, state_stack):
-        print('{0}{1}({2});'.format(indent, parent, this), file=buf, end='')
+        buf.write('{0}{1}({2});'.format(indent, parent, this))
     elif _is_options(parent, this, state_stack):
         _build_options(salt_id, parent, this, indent, buf, state_stack)
     elif _are_parameters(this, state_stack):
@@ -301,9 +301,7 @@ def _build_config(salt_id, parent, this, state_stack):
         return 'no' if this else 'yes'
     else:
         # It's an unhandled case
-        print('{0}# BUG, please report to the syslog-ng mailing list: syslog-ng@lists.balabit.hu'.format(indent),
-              file=buf,
-              end='')
+        buf.write('{0}# BUG, please report to the syslog-ng mailing list: syslog-ng@lists.balabit.hu'.format(indent))
         raise SyslogNgError('Unhandled case while generating configuration from YAML to syslog-ng format')
 
     buf.seek(0)
